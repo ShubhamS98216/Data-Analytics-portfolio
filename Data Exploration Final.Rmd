@@ -1,0 +1,354 @@
+---
+title: "ISyE 603 Project Data Exploration"
+output: html_notebook
+---
+```{r}
+install.packages("forecast")
+install.packages("tseries")
+install.packages("pracma")
+install.packages("TSA")
+install.packages("ggfortify")
+```
+```{r}
+install.packages("ggfortify")
+```
+
+```{r}
+# Load the necessary libraries
+library(stats)
+library(ggplot2)
+library(forecast)
+library(tseries)
+library(pracma)
+library(TSA)
+library(fpp3)
+library(tsibble)
+library(fable)
+update.packages("tsibble")
+update.packages("fable")
+library(ggfortify)
+```
+```{r}
+df72 <- read.csv("/Users/raynewolf/Desktop/Grad_School/ISyE 603/Project Data Sets/72-V2500.csv")
+df74 <- read.csv("/Users/raynewolf/Desktop/Grad_School/ISyE 603/Project Data Sets/74-V2850.csv")
+df62 <- read.csv("/Users/raynewolf/Desktop/Grad_School/ISyE 603/Project Data Sets/62-V2150-Better.csv")
+df37 <- read.csv("/Users/raynewolf/Desktop/Grad_School/ISyE 603/Project Data Sets/37-V1950-Better.csv")
+df75 <- read.csv("/Users/raynewolf/Desktop/Grad_School/ISyE 603/Project Data Sets/75-V2200.csv")
+df75$Standoff.Distance <- NULL
+df58 <- read.csv("/Users/raynewolf/Desktop/Grad_School/ISyE 603/Project Data Sets/58-V2100.csv")
+df58$Standoff.Distance <- NULL
+head(df58)
+```
+
+```{r}
+alldf <- rbind(df74, df62, df37, df75, df58)
+df74$V <- "2850"
+df62$V <- "2150"
+df37$V <- "1950"
+df75$V <- "2200"
+df58$V <- "2100"
+
+ggplot(alldf, aes(x = Time.Index, y = Taylor.Cone.Height, color = V, group = V)) +
+  geom_line() +
+  labs(x = "Time", y = "Taylor Cone Height", title = "Taylor Cone Height v Time") +
+  theme_minimal() 
+```
+```{r}
+print("Frequency of 2850V (df74): ")
+findfrequency(df74$Taylor.Cone.Height)
+print("Frequency of 2150V (df62): ")
+findfrequency(df62$Taylor.Cone.Height)
+print("Frequency of 1950V (df37): ")
+findfrequency(df37$Taylor.Cone.Height)
+print("Frequency of 2200V (df75): ")
+findfrequency(df75$Taylor.Cone.Height)
+print("Frequency of 2100V (df58): ")
+findfrequency(df58$Taylor.Cone.Height)
+```
+
+```{r}
+# compute the Fourier Transform
+p = periodogram(df74$Taylor.Cone.Height)
+
+
+dd = data.frame(freq=p$freq, spec=p$spec)
+order = dd[order(-dd$spec),]
+top2 = head(order, 3)
+ 
+# display the 2 highest "power" frequencies
+top2
+
+time = 1/top2$f
+time
+```
+```{r}
+# compute the Fourier Transform
+p = periodogram(df62$Taylor.Cone.Height)
+
+dd = data.frame(freq=p$freq, spec=p$spec)
+order = dd[order(-dd$spec),]
+top2 = head(order, 3)
+ 
+# display the 2 highest "power" frequencies
+top2
+
+time = 1/top2$f
+time
+```
+```{r}
+# compute the Fourier Transform
+p = periodogram(df37$Taylor.Cone.Height)
+
+dd = data.frame(freq=p$freq, spec=p$spec)
+order = dd[order(-dd$spec),]
+top2 = head(order, 3)
+ 
+# display the 2 highest "power" frequencies
+top2
+
+time = 1/top2$f
+time
+```
+```{r}
+# compute the Fourier Transform
+p = periodogram(df75$Taylor.Cone.Height)
+
+dd = data.frame(freq=p$freq, spec=p$spec)
+order = dd[order(-dd$spec),]
+top2 = head(order, 3)
+ 
+# display the 2 highest "power" frequencies
+top2
+
+time = 1/top2$f
+time
+```
+
+```{r}
+# compute the Fourier Transform
+p = periodogram(df58$Taylor.Cone.Height)
+
+dd = data.frame(freq=p$freq, spec=p$spec)
+order = dd[order(-dd$spec),]
+top2 = head(order, 3)
+ 
+# display the 2 highest "power" frequencies
+top2
+
+time = 1/top2$f
+time
+```
+```{r}
+ts74 <- ts(df74$Taylor.Cone.Height, start = c(0), frequency = 100)
+
+# Plot the ACF
+acf(ts74)
+
+# Plot the PACF
+pacf(ts74)
+```
+
+
+```{r}
+# select only the first two columns and create a new data frame with them
+small_df74 <- df74[, c("Time.Index", "Taylor.Cone.Height")]
+
+# print the new data frame
+small_df74
+
+# convert your time series object to a tsibble object
+small_df74_tsibble <- as_tsibble(small_df74, index = Time.Index)
+
+# run STL decomposition on the tsibble object
+small_df74_tsibble %>% model(STL(Taylor.Cone.Height ~ season(period = 100))) %>%
+  components() %>%
+  autoplot() 
+
+stl_result <- small_df74_tsibble %>% model(STL(Taylor.Cone.Height ~ season(period = 100)))
+
+# plot the residuals
+autoplot(residuals(stl_result))
+
+resid <- residuals(stl_result, type = "numeric")$.resid
+
+# plot the QQ plot of residuals
+qqnorm(resid)
+qqline(resid)
+
+acf(resid)
+pacf(resid)
+
+```
+
+```{r}
+# select only the first two columns and create a new data frame with them
+small_df62 <- df62[, c("Time.Index", "Taylor.Cone.Height")]
+
+# print the new data frame
+small_df62
+
+# convert your time series object to a tsibble object
+small_df62_tsibble <- as_tsibble(small_df62, index = Time.Index)
+
+# run STL decomposition on the tsibble object
+small_df62_tsibble %>% model(STL(Taylor.Cone.Height ~ season(period = 50))) %>%
+  components() %>%
+  autoplot()
+
+stl_result <- small_df62_tsibble %>% model(STL(Taylor.Cone.Height ~ season(period = 50)))
+
+# plot the residuals
+autoplot(residuals(stl_result))
+
+resid <- residuals(stl_result, type = "numeric")$.resid
+
+# plot the QQ plot of residuals
+qqnorm(resid)
+qqline(resid)
+
+acf(resid)
+pacf(resid)
+
+```
+```{r}
+# select only the first two columns and create a new data frame with them
+small_df37 <- df37[, c("Time.Index", "Taylor.Cone.Height")]
+
+# print the new data frame
+small_df37
+
+# convert your time series object to a tsibble object
+small_df37_tsibble <- as_tsibble(small_df37, index = Time.Index)
+
+# run STL decomposition on the tsibble object
+small_df37_tsibble %>% model(STL(Taylor.Cone.Height ~ season(period = 81.82))) %>%
+  components() %>%
+  autoplot() 
+
+
+stl_result <- small_df37_tsibble %>% model(STL(Taylor.Cone.Height ~ season(period = 81.82)))
+
+# plot the residuals
+autoplot(residuals(stl_result))
+
+resid <- residuals(stl_result, type = "numeric")$.resid
+
+# plot the QQ plot of residuals
+qqnorm(resid)
+qqline(resid)
+
+acf(resid)
+pacf(resid)
+```
+
+
+
+
+```{r}
+# Define period length
+#period_length <- findfrequency(df74$Taylor.Cone.Height)
+period_length <- 100
+# Calculate number of periods
+num_periods <- ceiling((max(df74$Time.Index) - min(df74$Time.Index))/period_length)
+
+# Create a sequence of period boundaries
+period_boundaries <- seq(min(df74$Time.Index), length.out = num_periods+1, by = period_length)
+
+# Use period boundaries to add vertical lines to the plot
+
+ggplot(df74, aes(x = Time.Index, y = Taylor.Cone.Height)) +
+  geom_line() +
+  scale_x_continuous(breaks = period_boundaries) +
+  geom_vline(xintercept = period_boundaries, linetype = "dashed", color = "blue") +
+  labs(x = "Time", y = "Taylor Cone Height", title = "Taylor Cone Height v Time @ 2850V") +
+  theme_minimal() 
+```
+
+
+```{r}
+df62_short <- df62[1:50, ]
+
+# Define period length
+period_length <- findfrequency(df62$Taylor.Cone.Height)
+
+# Calculate number of periods
+num_periods <- ceiling((max(df62_short$Time.Index) - min(df62_short$Time.Index))/period_length)
+
+# Create a sequence of period boundaries
+period_boundaries <- seq(min(df62_short$Time.Index), length.out = num_periods+1, by = period_length)
+
+# Use period boundaries to add vertical lines to the plot
+
+ggplot(df62_short, aes(x = Time.Index, y = Taylor.Cone.Height)) +
+  geom_line() +
+  scale_x_continuous(breaks = period_boundaries) +
+  geom_vline(xintercept = period_boundaries, linetype = "dashed", color = "blue") +
+  labs(x = "Time", y = "Taylor Cone Height", title = "Taylor Cone Height v Time @ 2150V") +
+  theme_minimal() 
+```
+```{r}
+df37_short <- df37[1:100, ]
+
+# Define period length
+period_length <- findfrequency(df37$Taylor.Cone.Height)
+
+# Calculate number of periods
+num_periods <- ceiling((max(df37_short$Time.Index) - min(df37_short$Time.Index))/period_length)
+
+# Create a sequence of period boundaries
+period_boundaries <- seq(min(df37_short$Time.Index), length.out = num_periods+1, by = period_length)
+
+# Use period boundaries to add vertical lines to the plot
+
+ggplot(df37_short, aes(x = Time.Index, y = Taylor.Cone.Height)) +
+  geom_line() +
+  scale_x_continuous(breaks = period_boundaries) +
+  geom_vline(xintercept = period_boundaries, linetype = "dashed", color = "blue") +
+  labs(x = "Time", y = "Taylor Cone Height", title = "Taylor Cone Height v Time @ 1950V") +
+  theme_minimal() 
+```
+```{r}
+df75_short <- df75[500:700, ]
+
+# Define period length
+period_length <- findfrequency(df75$Taylor.Cone.Height)
+
+# Calculate number of periods
+num_periods <- ceiling((max(df75_short$Time.Index) - min(df75_short$Time.Index))/period_length)
+
+# Create a sequence of period boundaries
+period_boundaries <- seq(min(df75_short$Time.Index), length.out = num_periods+1, by = period_length)
+
+# Use period boundaries to add vertical lines to the plot
+
+ggplot(df75_short, aes(x = Time.Index, y = Taylor.Cone.Height)) +
+  geom_line() +
+  scale_x_continuous(breaks = period_boundaries) +
+  geom_vline(xintercept = period_boundaries, linetype = "dashed", color = "blue") +
+  labs(x = "Time", y = "Taylor Cone Height", title = "Taylor Cone Height v Time @ 2200V") +
+  theme_minimal() 
+```
+```{r}
+df58_short <- df58[1:50, ]
+
+# Define period length
+period_length <- findfrequency(df58$Taylor.Cone.Height)
+
+# Calculate number of periods
+num_periods <- ceiling((max(df58_short$Time.Index) - min(df58_short$Time.Index))/period_length)
+
+# Create a sequence of period boundaries
+period_boundaries <- seq(min(df58_short$Time.Index), length.out = num_periods+1, by = period_length)
+
+# Use period boundaries to add vertical lines to the plot
+
+ggplot(df58_short, aes(x = Time.Index, y = Taylor.Cone.Height)) +
+  geom_line() +
+  scale_x_continuous(breaks = period_boundaries) +
+  geom_vline(xintercept = period_boundaries, linetype = "dashed", color = "blue") +
+  labs(x = "Time", y = "Taylor Cone Height", title = "Taylor Cone Height v Time @ 2100V") +
+  theme_minimal() 
+```
+
+
+
